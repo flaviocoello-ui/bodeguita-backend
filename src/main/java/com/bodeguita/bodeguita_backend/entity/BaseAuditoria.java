@@ -2,12 +2,17 @@ package com.bodeguita.bodeguita_backend.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+
+import com.bodeguita.bodeguita_backend.security.ContextoUsuario;
 
 @Getter
 @Setter
@@ -15,6 +20,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @MappedSuperclass
 public abstract class BaseAuditoria {
+
+    private static final ZoneId ZONA_HORARIA_LIMA = ZoneId.of("America/Lima");
 
     @Column(name = "usu_cre", length = 30)
     private String usuarioCreador;
@@ -34,6 +41,25 @@ public abstract class BaseAuditoria {
     @Column(name = "fec_mod")
     private LocalDateTime fecModificador;
 
-    @Column(name = "estado")
+    @Column(name = "estado", length = 1, nullable = false)
     private Boolean estado = Boolean.TRUE;
+
+    @PrePersist
+    protected void antesDeCrear() {
+        if (fecCreador == null) {
+            fecCreador = LocalDateTime.now(ZONA_HORARIA_LIMA);
+        }
+        if (estado == null) {
+            estado = Boolean.TRUE;
+        }
+        if (usuarioCreador == null) {
+            usuarioCreador = ContextoUsuario.logeo();
+        }
+    }
+
+    @PreUpdate
+    protected void antesDeActualizar() {
+        fecModificador = LocalDateTime.now(ZONA_HORARIA_LIMA);
+        usuarioModificador = ContextoUsuario.logeo();
+    }
 }
